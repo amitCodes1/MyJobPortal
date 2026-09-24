@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://localhost:5000/api",
+  baseURL: "https://my-job-portal-x5i9.vercel.app/",
   withCredentials: true
 });
 

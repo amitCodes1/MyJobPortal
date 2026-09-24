@@ -145,3 +145,36 @@ export const deleteJob = async (req, res) => {
     });
   }
 };
+
+export const getMyJobs = async (req, res) => {
+  try {
+    if (req.user.role !== "recruiter") {
+      return res.status(403).json({
+        success: false,
+        message: "Only recruiters can access their jobs"
+      });
+    }
+
+    const jobs = await Job.find({
+      recruiter: req.user.userId
+    })
+      .populate(
+        "recruiter",
+        "name email"
+      )
+      .sort({
+        createdAt: -1
+      });
+
+    res.status(200).json({
+      success: true,
+      count: jobs.length,
+      jobs
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
