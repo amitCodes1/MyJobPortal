@@ -28,8 +28,7 @@ const MainLayout = () => {
   const location = useLocation();
   const dispatch = useAppDispatch();
 
-  const [mobileMenuOpen, setMobileMenuOpen] =
-    useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const { user, isAuthenticated } = useAppSelector(
     (state) => state.auth
@@ -84,7 +83,6 @@ const MainLayout = () => {
             onClick={closeMobileMenu}
             className="group flex items-center gap-2"
           >
-
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-200 transition-all duration-300 group-hover:-rotate-6 group-hover:scale-110">
               <Briefcase size={21} />
             </div>
@@ -92,7 +90,6 @@ const MainLayout = () => {
             <span className="text-xl font-extrabold tracking-tight text-slate-900">
               Job<span className="text-blue-600">Portal</span>
             </span>
-
           </Link>
 
           <div className="hidden items-center gap-1 lg:flex">
@@ -151,30 +148,33 @@ const MainLayout = () => {
                   </>
                 )}
 
-{user?.role === "recruiter" && (
-  <>
+                {user?.role === "recruiter" && (
+                  <>
+                    <Link
+                      to="/my-jobs"
+                      className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-300 ${
+                        isActive("/my-jobs")
+                          ? "bg-blue-50 text-blue-600"
+                          : "text-slate-600 hover:-translate-y-0.5 hover:bg-slate-50 hover:text-blue-600"
+                      }`}
+                    >
+                      <Briefcase size={17} />
+                      My Jobs
+                    </Link>
 
-   <Link
-      to="/dashboard"
-      className="px-4 py-2 text-sm font-medium text-slate-300 transition hover:text-blue-400"
-    >
-      Dashboard
-    </Link>
-<Link
-  to="/my-jobs"
-  className="rounded-xl border border-blue-500/40 bg-blue-500/10 px-4 py-2 text-sm font-semibold text-blue-300 transition hover:-translate-y-0.5 hover:bg-blue-500/20 hover:text-blue-200"
->
-  My Jobs
-</Link>
-
-    <Link
-  to="/create-job"
-  className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-blue-900/20 transition hover:-translate-y-0.5 hover:bg-blue-500"
->
-  Create Job
-</Link>
-  </>
-)}
+                    <Link
+                      to="/create-job"
+                      className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-300 ${
+                        isActive("/create-job")
+                          ? "bg-blue-600 text-white shadow-lg shadow-blue-200"
+                          : "bg-blue-600 text-white shadow-lg shadow-blue-200 hover:-translate-y-0.5 hover:bg-blue-500"
+                      }`}
+                    >
+                      <PlusCircle size={17} />
+                      Create Job
+                    </Link>
+                  </>
+                )}
 
                 <Link
                   to="/profile"
@@ -203,6 +203,7 @@ const MainLayout = () => {
                   </div>
 
                   <button
+                    type="button"
                     onClick={handleLogout}
                     className="flex items-center gap-2 rounded-xl bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-500 transition-all duration-300 hover:-translate-y-0.5 hover:bg-red-500 hover:text-white hover:shadow-lg hover:shadow-red-100"
                   >
@@ -237,6 +238,7 @@ const MainLayout = () => {
           </div>
 
           <button
+            type="button"
             onClick={() =>
               setMobileMenuOpen((previous) => !previous)
             }
@@ -315,14 +317,33 @@ const MainLayout = () => {
                   )}
 
                   {user?.role === "recruiter" && (
-                    <Link
-                      to="/create-job"
-                      onClick={closeMobileMenu}
-                      className="flex items-center gap-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3 text-sm font-semibold text-white"
-                    >
-                      <PlusCircle size={18} />
-                      Create Job
-                    </Link>
+                    <>
+                      <Link
+                        to="/my-jobs"
+                        onClick={closeMobileMenu}
+                        className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold ${
+                          isActive("/my-jobs")
+                            ? "bg-blue-50 text-blue-600"
+                            : "text-slate-600 hover:bg-slate-50"
+                        }`}
+                      >
+                        <Briefcase size={18} />
+                        My Jobs
+                      </Link>
+
+                      <Link
+                        to="/create-job"
+                        onClick={closeMobileMenu}
+                        className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold ${
+                          isActive("/create-job")
+                            ? "bg-blue-600 text-white"
+                            : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white"
+                        }`}
+                      >
+                        <PlusCircle size={18} />
+                        Create Job
+                      </Link>
+                    </>
                   )}
 
                   <Link
@@ -343,7 +364,6 @@ const MainLayout = () => {
                   <div className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
 
                     <div className="min-w-0">
-
                       <p className="truncate text-sm font-bold text-slate-800">
                         {user?.name}
                       </p>
@@ -351,10 +371,10 @@ const MainLayout = () => {
                       <p className="text-xs capitalize text-slate-400">
                         {user?.role}
                       </p>
-
                     </div>
 
                     <button
+                      type="button"
                       onClick={handleLogout}
                       className="flex items-center gap-2 rounded-xl bg-red-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-red-100"
                     >
