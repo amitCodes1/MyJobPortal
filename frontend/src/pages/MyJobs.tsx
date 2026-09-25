@@ -4,7 +4,6 @@ import {
   Building2,
   CalendarDays,
   CheckCircle2,
-  ChevronLeft,
   ChevronRight,
   Edit3,
   MapPin,

@@ -20,6 +20,7 @@ export interface Job {
   jobType: "full-time" | "part-time" | "internship" | "contract";
   experience: string;
   skills: string[];
+  status: "active" | "closed";
   recruiter: string | {
     _id: string;
     name: string;
