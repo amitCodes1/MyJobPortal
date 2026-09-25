@@ -256,3 +256,55 @@ export const getMyJobs = async (req, res) => {
     });
   }
 };
+
+export const toggleJobStatus = async (req, res) => {
+  try {
+    if (req.user.role !== "recruiter") {
+      return res.status(403).json({
+        success: false,
+        message: "Only recruiters can change job status"
+      });
+    }
+
+    const job = await Job.findById(req.params.id);
+
+    if (!job) {
+      return res.status(404).json({
+        success: false,
+        message: "Job not found"
+      });
+    }
+
+    if (
+      job.recruiter.toString() !==
+      req.user.userId
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not allowed to change this job"
+      });
+    }
+
+    job.status =
+      job.status === "active"
+        ? "closed"
+        : "active";
+
+    await job.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Job ${
+        job.status === "active"
+          ? "opened"
+          : "closed"
+      } successfully`,
+      job
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};

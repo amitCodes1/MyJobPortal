@@ -32,7 +32,12 @@ const jobSchema = new mongoose.Schema(
 
     jobType: {
       type: String,
-      enum: ["full-time", "part-time", "internship", "contract"],
+      enum: [
+        "full-time",
+        "part-time",
+        "internship",
+        "contract"
+      ],
       required: true
     },
 
@@ -50,6 +55,12 @@ const jobSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true
+    },
+
+    status: {
+      type: String,
+      enum: ["active", "closed"],
+      default: "active"
     }
   },
   {

@@ -79,3 +79,10 @@ export const updateJob = async (
     job: Job;
   };
 };
+export const toggleJobStatus = async (id: string) => {
+  const response = await api.patch(
+    `/jobs/${id}/status`
+  );
+
+  return response.data;
+};

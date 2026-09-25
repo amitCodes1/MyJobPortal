@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
@@ -18,13 +19,9 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 
-import {
-  getJobById
-} from "../services/job.service";
+import { getJobById } from "../services/job.service";
 
-import {
-  applyForJob
-} from "../services/application.service";
+import { applyForJob } from "../services/application.service";
 
 import {
   getSavedJobs,
@@ -96,7 +93,7 @@ const JobDetails = () => {
         const response = await getSavedJobs();
 
         const exists = response.savedJobs.some(
-          (savedJob) =>
+          (savedJob: any) =>
             savedJob.job &&
             savedJob.job._id === id
         );
@@ -167,6 +164,14 @@ const JobDetails = () => {
       return;
     }
 
+    if (job.status === "closed") {
+      toast.error(
+        "This job is no longer accepting applications"
+      );
+      setShowApplyModal(false);
+      return;
+    }
+
     if (!user) {
       toast.error("Please login to apply");
       navigate("/login");
@@ -204,6 +209,34 @@ const JobDetails = () => {
     }
   };
 
+  const openApplyModal = () => {
+    if (!job) {
+      return;
+    }
+
+    if (job.status === "closed") {
+      toast.error(
+        "This job is no longer accepting applications"
+      );
+      return;
+    }
+
+    if (!user) {
+      toast.error("Please login to apply");
+      navigate("/login");
+      return;
+    }
+
+    if (user.role !== "jobseeker") {
+      toast.error(
+        "Only jobseekers can apply for jobs"
+      );
+      return;
+    }
+
+    setShowApplyModal(true);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-950 px-4 py-10 text-white sm:px-6 lg:px-8">
@@ -214,6 +247,7 @@ const JobDetails = () => {
 
           <div className="mt-6 grid gap-6 lg:grid-cols-3">
             <div className="h-96 rounded-3xl bg-slate-900 lg:col-span-2" />
+
             <div className="h-80 rounded-3xl bg-slate-900" />
           </div>
         </div>
@@ -260,9 +294,10 @@ const JobDetails = () => {
       ? job.recruiter.email
       : "";
 
+  const isClosed = job.status === "closed";
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-slate-950 px-4 py-8 text-white sm:px-6 lg:px-8">
-
       <div className="pointer-events-none absolute left-[-12rem] top-20 h-96 w-96 rounded-full bg-blue-600/20 blur-[120px]" />
 
       <div className="pointer-events-none absolute right-[-10rem] top-72 h-96 w-96 rounded-full bg-purple-600/20 blur-[120px]" />
@@ -270,7 +305,6 @@ const JobDetails = () => {
       <div className="pointer-events-none absolute bottom-0 left-1/3 h-80 w-80 rounded-full bg-cyan-500/10 blur-[120px]" />
 
       <div className="relative mx-auto max-w-7xl">
-
         <button
           type="button"
           onClick={() => navigate(-1)}
@@ -281,37 +315,56 @@ const JobDetails = () => {
         </button>
 
         <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 shadow-2xl backdrop-blur-2xl sm:p-10">
-
           <div className="absolute right-[-5rem] top-[-5rem] h-56 w-56 rounded-full bg-blue-500/10 blur-3xl" />
 
           <div className="absolute bottom-[-6rem] left-1/3 h-48 w-48 rounded-full bg-purple-500/10 blur-3xl" />
 
           <div className="relative flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
-
             <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
-
               <div className="relative">
-
                 <div className="flex h-24 w-24 rotate-[-4deg] items-center justify-center rounded-[1.75rem] bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-700 text-4xl font-black shadow-2xl shadow-blue-500/20 transition duration-500 hover:rotate-3 hover:scale-105">
                   {job.company
                     .charAt(0)
                     .toUpperCase()}
                 </div>
 
-                <div className="absolute -bottom-2 -right-2 flex h-8 w-8 items-center justify-center rounded-full border-4 border-slate-950 bg-green-500">
-                  <CheckCircle2
-                    size={15}
-                    className="text-white"
-                  />
+                <div
+                  className={`absolute -bottom-2 -right-2 flex h-8 w-8 items-center justify-center rounded-full border-4 border-slate-950 ${
+                    isClosed
+                      ? "bg-red-500"
+                      : "bg-green-500"
+                  }`}
+                >
+                  {isClosed ? (
+                    <X size={15} />
+                  ) : (
+                    <CheckCircle2
+                      size={15}
+                      className="text-white"
+                    />
+                  )}
                 </div>
-
               </div>
 
               <div>
-
-                <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-blue-300">
-                  <Sparkles size={13} />
-                  Featured Opportunity
+                <div
+                  className={`mb-3 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold ${
+                    isClosed
+                      ? "border-red-500/20 bg-red-500/10 text-red-300"
+                      : "border-blue-500/20 bg-blue-500/10 text-blue-300"
+                  }`}
+                >
+                  {isClosed ? (
+                    <>
+                      <X size={13} />
+                      Applications Closed
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={13} />
+                      Featured Opportunity
+                    </>
+                  )}
                 </div>
 
                 <h1 className="max-w-3xl text-3xl font-black tracking-tight sm:text-5xl">
@@ -319,7 +372,6 @@ const JobDetails = () => {
                 </h1>
 
                 <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-slate-400">
-
                   <span className="flex items-center gap-2">
                     <Building2
                       size={16}
@@ -335,15 +387,11 @@ const JobDetails = () => {
                     />
                     {job.location}
                   </span>
-
                 </div>
-
               </div>
-
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
-
               {user?.role === "jobseeker" && (
                 <button
                   type="button"
@@ -367,34 +415,39 @@ const JobDetails = () => {
                   {saving
                     ? "Saving..."
                     : isSaved
-                      ? "Saved"
-                      : "Save Job"}
+                    ? "Saved"
+                    : "Save Job"}
                 </button>
               )}
 
-              {user?.role !== "recruiter" && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    setShowApplyModal(true)
-                  }
-                  className="group inline-flex items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-7 py-3.5 text-sm font-bold text-white shadow-xl shadow-blue-600/20 transition-all duration-300 hover:-translate-y-1 hover:from-blue-500 hover:to-indigo-500"
-                >
-                  Apply Now
+              {user?.role !== "recruiter" &&
+                (isClosed ? (
+                  <button
+                    type="button"
+                    disabled
+                    className="inline-flex cursor-not-allowed items-center justify-center gap-3 rounded-2xl bg-slate-800 px-7 py-3.5 text-sm font-bold text-slate-500"
+                  >
+                    <X size={18} />
+                    Applications Closed
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={openApplyModal}
+                    className="group inline-flex items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-7 py-3.5 text-sm font-bold text-white shadow-xl shadow-blue-600/20 transition-all duration-300 hover:-translate-y-1 hover:from-blue-500 hover:to-indigo-500"
+                  >
+                    Apply Now
 
-                  <ArrowRight
-                    size={18}
-                    className="transition-transform group-hover:translate-x-1"
-                  />
-                </button>
-              )}
-
+                    <ArrowRight
+                      size={18}
+                      className="transition-transform group-hover:translate-x-1"
+                    />
+                  </button>
+                ))}
             </div>
-
           </div>
 
           <div className="relative mt-9 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-
             <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-5 backdrop-blur">
               <div className="flex items-center gap-3">
                 <div className="rounded-xl bg-green-500/10 p-2.5 text-green-400">
@@ -407,7 +460,10 @@ const JobDetails = () => {
                   </p>
 
                   <p className="mt-1 font-bold">
-                    ₹{job.salary.toLocaleString("en-IN")}
+                    ₹
+                    {job.salary.toLocaleString(
+                      "en-IN"
+                    )}
                   </p>
                 </div>
               </div>
@@ -469,17 +525,12 @@ const JobDetails = () => {
                 </div>
               </div>
             </div>
-
           </div>
-
         </section>
 
         <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_360px]">
-
           <main className="space-y-8">
-
             <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 shadow-xl backdrop-blur-xl sm:p-8">
-
               <div className="flex items-center gap-3">
                 <div className="h-10 w-1 rounded-full bg-gradient-to-b from-blue-400 to-purple-500" />
 
@@ -491,11 +542,9 @@ const JobDetails = () => {
               <p className="mt-6 whitespace-pre-line text-[15px] leading-8 text-slate-400">
                 {job.description}
               </p>
-
             </section>
 
             <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 shadow-xl backdrop-blur-xl sm:p-8">
-
               <div className="flex items-center gap-3">
                 <div className="h-10 w-1 rounded-full bg-gradient-to-b from-purple-400 to-pink-500" />
 
@@ -505,7 +554,6 @@ const JobDetails = () => {
               </div>
 
               <div className="mt-7 flex flex-wrap gap-3">
-
                 {job.skills.map(
                   (skill, index) => (
                     <span
@@ -516,61 +564,62 @@ const JobDetails = () => {
                     </span>
                   )
                 )}
-
               </div>
-
             </section>
 
             <section className="rounded-[2rem] border border-white/10 bg-gradient-to-br from-blue-600/10 via-transparent to-purple-600/10 p-6 shadow-xl backdrop-blur-xl sm:p-8">
-
               <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-
                 <div>
                   <p className="text-sm font-semibold text-blue-400">
-                    Ready for your next move?
+                    {isClosed
+                      ? "Applications are closed"
+                      : "Ready for your next move?"}
                   </p>
 
                   <h2 className="mt-2 text-2xl font-black">
-                    Take the next step.
+                    {isClosed
+                      ? "This opportunity is no longer accepting applications."
+                      : "Take the next step."}
                   </h2>
 
                   <p className="mt-2 text-sm text-slate-400">
-                    Submit your application and let your
-                    skills speak for you.
+                    {isClosed
+                      ? "You can explore other available jobs."
+                      : "Submit your application and let your skills speak for you."}
                   </p>
                 </div>
 
-                {user?.role !== "recruiter" && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setShowApplyModal(true)
-                    }
-                    className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3 font-bold text-slate-950 transition hover:-translate-y-1 hover:bg-blue-50"
-                  >
-                    Apply Now
-                    <Send size={17} />
-                  </button>
-                )}
-
+                {user?.role !== "recruiter" &&
+                  (isClosed ? (
+                    <Link
+                      to="/jobs"
+                      className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3 font-bold text-slate-950 transition hover:-translate-y-1 hover:bg-blue-50"
+                    >
+                      Browse Jobs
+                      <ArrowRight size={17} />
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={openApplyModal}
+                      className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3 font-bold text-slate-950 transition hover:-translate-y-1 hover:bg-blue-50"
+                    >
+                      Apply Now
+                      <Send size={17} />
+                    </button>
+                  ))}
               </div>
-
             </section>
-
           </main>
 
           <aside className="lg:sticky lg:top-24 lg:self-start">
-
             <div className="overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.04] shadow-2xl backdrop-blur-xl">
-
               <div className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 p-6">
-
                 <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-white/10" />
 
                 <div className="absolute -bottom-12 -left-8 h-36 w-36 rounded-full bg-white/10 blur-xl" />
 
                 <div className="relative">
-
                   <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15 text-2xl font-black backdrop-blur">
                     {job.company
                       .charAt(0)
@@ -584,15 +633,11 @@ const JobDetails = () => {
                   <h3 className="mt-1 text-2xl font-black">
                     {job.company}
                   </h3>
-
                 </div>
-
               </div>
 
               <div className="p-6">
-
                 <div className="flex items-center gap-4">
-
                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-800 text-blue-400">
                     <User size={22} />
                   </div>
@@ -606,7 +651,6 @@ const JobDetails = () => {
                       {recruiterName}
                     </p>
                   </div>
-
                 </div>
 
                 {recruiterEmail && (
@@ -623,7 +667,6 @@ const JobDetails = () => {
                 )}
 
                 <div className="mt-6 space-y-3">
-
                   <div className="flex items-center justify-between rounded-xl bg-slate-950/60 px-4 py-3">
                     <span className="text-sm text-slate-500">
                       Experience
@@ -653,45 +696,62 @@ const JobDetails = () => {
                     </span>
 
                     <span className="text-sm font-bold text-green-400">
-                      ₹{job.salary.toLocaleString("en-IN")}
+                      ₹
+                      {job.salary.toLocaleString(
+                        "en-IN"
+                      )}
                     </span>
                   </div>
 
+                  <div className="flex items-center justify-between rounded-xl bg-slate-950/60 px-4 py-3">
+                    <span className="text-sm text-slate-500">
+                      Status
+                    </span>
+
+                    <span
+                      className={`text-sm font-bold ${
+                        isClosed
+                          ? "text-red-400"
+                          : "text-green-400"
+                      }`}
+                    >
+                      {isClosed
+                        ? "Closed"
+                        : "Active"}
+                    </span>
+                  </div>
                 </div>
 
-                {user?.role !== "recruiter" && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setShowApplyModal(true)
-                    }
-                    className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 py-4 font-bold transition-all hover:-translate-y-1 hover:bg-blue-500 hover:shadow-xl hover:shadow-blue-500/20"
-                  >
-                    <Send size={18} />
-                    Apply for this Job
-                  </button>
-                )}
-
+                {user?.role !== "recruiter" &&
+                  (isClosed ? (
+                    <div className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-800 px-5 py-4 text-sm font-bold text-slate-500">
+                      <X size={18} />
+                      Applications Closed
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={openApplyModal}
+                      className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 py-4 font-bold transition-all hover:-translate-y-1 hover:bg-blue-500 hover:shadow-xl hover:shadow-blue-500/20"
+                    >
+                      <Send size={18} />
+                      Apply for this Job
+                    </button>
+                  ))}
               </div>
-
             </div>
-
           </aside>
-
         </div>
-
       </div>
 
-      {showApplyModal && (
+      {showApplyModal && !isClosed && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 px-4 py-6 backdrop-blur-md">
-
           <div className="w-full max-w-2xl overflow-hidden rounded-[2rem] border border-white/10 bg-slate-900 shadow-2xl">
-
             <div className="flex items-center justify-between border-b border-slate-800 p-6">
-
               <div>
                 <div className="flex items-center gap-2 text-blue-400">
                   <Send size={18} />
+
                   <span className="text-sm font-semibold">
                     Apply Now
                   </span>
@@ -715,14 +775,12 @@ const JobDetails = () => {
               >
                 <X size={20} />
               </button>
-
             </div>
 
             <form
               onSubmit={handleApply}
               className="p-6 sm:p-8"
             >
-
               <label className="text-sm font-semibold text-slate-300">
                 Cover Letter
               </label>
@@ -740,7 +798,6 @@ const JobDetails = () => {
               />
 
               <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-
                 <button
                   type="button"
                   onClick={() =>
@@ -762,16 +819,11 @@ const JobDetails = () => {
                     ? "Submitting..."
                     : "Submit Application"}
                 </button>
-
               </div>
-
             </form>
-
           </div>
-
         </div>
       )}
-
     </div>
   );
 };

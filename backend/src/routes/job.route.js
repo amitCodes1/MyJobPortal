@@ -6,7 +6,8 @@ import {
   getJobById,
   deleteJob,
   getMyJobs,
-  updateJob
+  updateJob,
+   toggleJobStatus
 
 } from "../controllers/job.controller.js";
 
@@ -40,6 +41,11 @@ router.put(
   "/:id",
   protect,
   updateJob
+);
+router.patch(
+  "/:id/status",
+  protect,
+  toggleJobStatus
 );
 
 router.delete(
