@@ -46,3 +46,36 @@ export const createJob = async (
     job: Job;
   };
 };
+
+export const getMyJobs = async () => {
+  const response = await api.get("/jobs/my-jobs");
+
+  return response.data as {
+    success: boolean;
+    count: number;
+    jobs: Job[];
+  };
+};
+export const deleteJob = async (id: string) => {
+  const response = await api.delete(`/jobs/${id}`);
+
+  return response.data as {
+    success: boolean;
+    message: string;
+  };
+};
+export const updateJob = async (
+  id: string,
+  data: CreateJobData
+) => {
+  const response = await api.put(
+    `/jobs/${id}`,
+    data
+  );
+
+  return response.data as {
+    success: boolean;
+    message: string;
+    job: Job;
+  };
+};

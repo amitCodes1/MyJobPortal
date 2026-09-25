@@ -1,73 +1,94 @@
-import { useRef, useState } from "react";
-import { Upload, User, Mail, Phone, Briefcase, FileText, Pencil, X, Save } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  User,
+  Mail,
+  Phone,
+  FileText,
+  Upload,
+  Save,
+  Download,
+  CheckCircle2
+} from "lucide-react";
 import { toast } from "react-hot-toast";
 
-import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { setUser } from "../store/authSlice";
 import {
   getMe,
   updateProfile
 } from "../services/auth.service";
 
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { setUser } from "../store/authSlice";
+
 const Profile = () => {
-  const dispatch = useAppDispatch();
-
-  const { user } = useAppSelector((state) => state.auth);
-
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-
-  const [uploading, setUploading] = useState(false);
-  const [editing, setEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
-
-  const [name, setName] = useState(user?.name || "");
-  const [phone, setPhone] = useState(user?.phone || "");
-  const [skills, setSkills] = useState(
-    user?.skills?.join(", ") || ""
+  const { user } = useAppSelector(
+    (state) => state.auth
   );
 
-  const handleEdit = () => {
-    setName(user?.name || "");
-    setPhone(user?.phone || "");
-    setSkills(user?.skills?.join(", ") || "");
-    setEditing(true);
-  };
+  const dispatch = useAppDispatch();
 
-  const handleCancel = () => {
-    setEditing(false);
-  };
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSave = async () => {
-    if (!name.trim()) {
-      toast.error("Name is required");
-      return;
-    }
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [skills, setSkills] = useState("");
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const response = await getMe();
+
+        const currentUser = response.user;
+
+        dispatch(setUser(currentUser));
+
+        setName(currentUser.name || "");
+        setPhone(currentUser.phone || "");
+        setSkills(
+          currentUser.skills?.join(", ") || ""
+        );
+      } catch (error: any) {
+        toast.error(
+          error.response?.data?.message ||
+            "Failed to load profile"
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProfile();
+  }, [dispatch]);
+
+  const handleUpdateProfile = async (
+    event: React.FormEvent
+  ) => {
+    event.preventDefault();
 
     try {
       setSaving(true);
 
-      const skillsArray = skills
+      const skillArray = skills
         .split(",")
         .map((skill) => skill.trim())
         .filter(Boolean);
 
       const response = await updateProfile({
-        name: name.trim(),
-        phone: phone.trim(),
-        skills: skillsArray
+        name,
+        phone,
+        skills: skillArray
       });
 
       dispatch(setUser(response.user));
 
-      setEditing(false);
-
-      toast.success(
-        response.message || "Profile updated successfully"
-      );
+      toast.success("Profile updated successfully");
     } catch (error: any) {
       toast.error(
         error.response?.data?.message ||
-          "Profile update failed"
+          "Failed to update profile"
       );
     } finally {
       setSaving(false);
@@ -88,17 +109,28 @@ const Profile = () => {
       return;
     }
 
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Resume size must be less than 5MB");
+      return;
+    }
+
     try {
       setUploading(true);
+
+      const token =
+        localStorage.getItem("accessToken");
+
+      if (!token) {
+        toast.error("Please login again");
+        return;
+      }
 
       const formData = new FormData();
 
       formData.append("file", file);
 
-      const token = localStorage.getItem("accessToken");
-
       const response = await fetch(
-        "http://localhost:5000/api/auth/resume",
+        `${import.meta.env.VITE_API_URL}/auth/resume`,
         {
           method: "POST",
           headers: {
@@ -116,9 +148,7 @@ const Profile = () => {
         );
       }
 
-      const userResponse = await getMe();
-
-      dispatch(setUser(userResponse.user));
+      dispatch(setUser(data.user));
 
       toast.success("Resume uploaded successfully");
     } catch (error: any) {
@@ -127,367 +157,300 @@ const Profile = () => {
       );
     } finally {
       setUploading(false);
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
   };
 
+  const getResumeUrl = () => {
+    if (!user?.resume) {
+      return "";
+    }
+
+    const baseUrl = import.meta.env.VITE_API_URL.replace(
+      "/api",
+      ""
+    );
+
+    return `${baseUrl}${user.resume}`;
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-950 px-4 py-10 text-white sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-5xl animate-pulse">
+          <div className="h-10 w-48 rounded-lg bg-slate-800" />
+
+          <div className="mt-8 h-96 rounded-3xl bg-slate-900" />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="relative min-h-[calc(100vh-73px)] overflow-hidden bg-slate-50 px-4 py-8 sm:px-6 lg:px-8">
-
-      <div className="pointer-events-none absolute -left-32 -top-32 h-72 w-72 rounded-full bg-blue-300/30 blur-3xl" />
-
-      <div className="pointer-events-none absolute -right-32 top-40 h-80 w-80 rounded-full bg-purple-300/30 blur-3xl" />
-
-      <div className="pointer-events-none absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-cyan-300/20 blur-3xl" />
-
-      <div className="relative mx-auto max-w-6xl">
-
-        <div className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-
-          <div>
-
-            <p className="mb-2 text-sm font-semibold uppercase tracking-[0.3em] text-blue-600">
-              My Profile
-            </p>
-
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
-              Manage Your Profile
-            </h1>
-
-            <p className="mt-3 max-w-xl text-sm leading-6 text-slate-500 sm:text-base">
-              Keep your professional information updated and
-              ready for recruiters.
-            </p>
-
+    <div className="min-h-screen bg-slate-950 px-4 py-10 text-white sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-5xl">
+        <div className="mb-8">
+          <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-4 py-2 text-sm font-medium text-blue-300">
+            <User size={16} />
+            My Profile
           </div>
 
-          {!editing && (
-            <button
-              onClick={handleEdit}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-3 font-semibold text-white shadow-lg transition-all duration-300 hover:-translate-y-1 hover:bg-blue-600 hover:shadow-xl"
-            >
-              <Pencil size={18} />
-              Edit Profile
-            </button>
-          )}
+          <h1 className="mt-5 text-3xl font-bold sm:text-4xl">
+            Profile Settings
+          </h1>
 
+          <p className="mt-2 text-slate-400">
+            Keep your profile updated for better job opportunities.
+          </p>
         </div>
 
-        {editing && (
-          <div className="mb-6 overflow-hidden rounded-3xl border border-blue-100 bg-white/90 p-6 shadow-2xl shadow-blue-100/50 backdrop-blur-xl sm:p-8">
-
-            <div className="mb-6">
-
-              <p className="text-sm font-semibold uppercase tracking-wider text-blue-600">
-                Edit Information
-              </p>
-
-              <h2 className="mt-1 text-2xl font-bold text-slate-900">
-                Update Your Profile
-              </h2>
-
-            </div>
-
-            <div className="grid gap-5 md:grid-cols-2">
-
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">
-                  Full Name
-                </label>
-
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(event) =>
-                    setName(event.target.value)
-                  }
-                  placeholder="Enter your name"
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-                />
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700">
-                  Phone
-                </label>
-
-                <input
-                  type="text"
-                  value={phone}
-                  onChange={(event) =>
-                    setPhone(event.target.value)
-                  }
-                  placeholder="Enter your phone number"
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-                />
-              </div>
-
-              <div className="md:col-span-2">
-
-                <label className="mb-2 block text-sm font-semibold text-slate-700">
-                  Skills
-                </label>
-
-                <input
-                  type="text"
-                  value={skills}
-                  onChange={(event) =>
-                    setSkills(event.target.value)
-                  }
-                  placeholder="React, JavaScript, Node.js, MongoDB"
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-                />
-
-                <p className="mt-2 text-xs text-slate-400">
-                  Separate multiple skills with commas.
-                </p>
-
-              </div>
-
-            </div>
-
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
-
-              <button
-                onClick={handleCancel}
-                disabled={saving}
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 px-5 py-3 font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
-              >
-                <X size={18} />
-                Cancel
-              </button>
-
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white shadow-lg transition-all hover:-translate-y-1 hover:bg-blue-700 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <Save size={18} />
-                {saving ? "Saving..." : "Save Changes"}
-              </button>
-
-            </div>
-
-          </div>
-        )}
-
         <div className="grid gap-6 lg:grid-cols-3">
-
-          <div className="group relative overflow-hidden rounded-3xl border border-white/70 bg-white/80 p-6 shadow-xl shadow-blue-100/40 backdrop-blur-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl lg:col-span-1">
-
-            <div className="absolute -right-12 -top-12 h-32 w-32 rounded-full bg-blue-500/10 transition-transform duration-500 group-hover:scale-150" />
-
-            <div className="relative">
-
-              <div className="mx-auto flex h-28 w-28 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600 p-1 shadow-xl shadow-blue-300/40 transition-transform duration-500 group-hover:rotate-6 group-hover:scale-105">
-
-                <div className="flex h-full w-full items-center justify-center rounded-full bg-white">
-
-                  <span className="bg-gradient-to-br from-blue-600 to-purple-600 bg-clip-text text-4xl font-extrabold uppercase text-transparent">
-                    {user?.name?.charAt(0) || "U"}
-                  </span>
-
-                </div>
-
-              </div>
-
-              <div className="mt-5 text-center">
-
-                <h2 className="text-2xl font-bold text-slate-900">
-                  {user?.name || "User"}
-                </h2>
-
-                <p className="mt-1 text-sm text-slate-500">
-                  {user?.email}
-                </p>
-
-                <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-blue-50 px-4 py-2 text-sm font-semibold capitalize text-blue-600">
-                  <Briefcase size={16} />
-                  {user?.role}
-                </div>
-
-              </div>
-
-              <div className="mt-7 grid grid-cols-2 gap-3">
-
-                <div className="rounded-2xl bg-slate-50 p-4 text-center transition hover:-translate-y-1 hover:bg-blue-50">
-                  <p className="text-2xl font-bold text-blue-600">
-                    {user?.skills?.length || 0}
-                  </p>
-
-                  <p className="mt-1 text-xs text-slate-500">
-                    Skills
-                  </p>
-                </div>
-
-                <div className="rounded-2xl bg-slate-50 p-4 text-center transition hover:-translate-y-1 hover:bg-purple-50">
-                  <p className="text-2xl font-bold text-purple-600">
-                    {user?.resume ? "1" : "0"}
-                  </p>
-
-                  <p className="mt-1 text-xs text-slate-500">
-                    Resume
-                  </p>
-                </div>
-
-              </div>
-
+          <div className="rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-xl">
+            <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-purple-600 text-3xl font-bold shadow-lg shadow-blue-500/20">
+              {user?.name
+                ?.charAt(0)
+                .toUpperCase()}
             </div>
 
-          </div>
+            <h2 className="mt-5 text-2xl font-bold">
+              {user?.name}
+            </h2>
 
-          <div className="space-y-6 lg:col-span-2">
+            <p className="mt-1 text-sm text-blue-400">
+              {user?.role === "jobseeker"
+                ? "Jobseeker"
+                : "Recruiter"}
+            </p>
 
-            <div className="rounded-3xl border border-white/70 bg-white/80 p-6 shadow-xl shadow-slate-200/50 backdrop-blur-xl sm:p-8">
+            <div className="mt-6 space-y-4">
+              <div className="flex items-start gap-3">
+                <Mail
+                  size={18}
+                  className="mt-0.5 text-slate-500"
+                />
 
-              <div className="mb-6">
-
-                <h2 className="text-xl font-bold text-slate-900">
-                  Personal Information
-                </h2>
-
-                <p className="mt-1 text-sm text-slate-500">
-                  Your basic account information
-                </p>
-
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-
-                <div className="group rounded-2xl border border-slate-100 bg-slate-50 p-4 transition-all duration-300 hover:-translate-y-1 hover:border-blue-100 hover:bg-blue-50/50 hover:shadow-lg">
-
-                  <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-600 transition-transform group-hover:rotate-6">
-                    <User size={20} />
-                  </div>
-
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                    Full Name
-                  </p>
-
-                  <p className="mt-1 font-semibold text-slate-800">
-                    {user?.name || "Not available"}
-                  </p>
-
-                </div>
-
-                <div className="group rounded-2xl border border-slate-100 bg-slate-50 p-4 transition-all duration-300 hover:-translate-y-1 hover:border-purple-100 hover:bg-purple-50/50 hover:shadow-lg">
-
-                  <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-purple-100 text-purple-600 transition-transform group-hover:rotate-6">
-                    <Mail size={20} />
-                  </div>
-
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                <div>
+                  <p className="text-xs text-slate-500">
                     Email
                   </p>
 
-                  <p className="mt-1 break-all font-semibold text-slate-800">
-                    {user?.email || "Not available"}
+                  <p className="mt-1 break-all text-sm text-slate-300">
+                    {user?.email}
                   </p>
-
                 </div>
+              </div>
 
-                <div className="group rounded-2xl border border-slate-100 bg-slate-50 p-4 transition-all duration-300 hover:-translate-y-1 hover:border-green-100 hover:bg-green-50/50 hover:shadow-lg">
+              <div className="flex items-start gap-3">
+                <Phone
+                  size={18}
+                  className="mt-0.5 text-slate-500"
+                />
 
-                  <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-green-100 text-green-600 transition-transform group-hover:rotate-6">
-                    <Phone size={20} />
-                  </div>
-
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                <div>
+                  <p className="text-xs text-slate-500">
                     Phone
                   </p>
 
-                  <p className="mt-1 font-semibold text-slate-800">
+                  <p className="mt-1 text-sm text-slate-300">
                     {user?.phone || "Not added"}
                   </p>
-
                 </div>
-
-                <div className="group rounded-2xl border border-slate-100 bg-slate-50 p-4 transition-all duration-300 hover:-translate-y-1 hover:border-orange-100 hover:bg-orange-50/50 hover:shadow-lg">
-
-                  <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-orange-100 text-orange-600 transition-transform group-hover:rotate-6">
-                    <Briefcase size={20} />
-                  </div>
-
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                    Account Type
-                  </p>
-
-                  <p className="mt-1 font-semibold capitalize text-slate-800">
-                    {user?.role || "Not available"}
-                  </p>
-
-                </div>
-
               </div>
 
-            </div>
+              <div className="flex items-start gap-3">
+                <FileText
+                  size={18}
+                  className="mt-0.5 text-slate-500"
+                />
 
-            <div className="rounded-3xl border border-white/70 bg-white/80 p-6 shadow-xl shadow-slate-200/50 backdrop-blur-xl sm:p-8">
+                <div>
+                  <p className="text-xs text-slate-500">
+                    Resume
+                  </p>
 
-              <div className="mb-5">
-
-                <h2 className="text-xl font-bold text-slate-900">
-                  Skills
-                </h2>
-
-                <p className="mt-1 text-sm text-slate-500">
-                  Technologies and skills in your profile
-                </p>
-
+                  <p className="mt-1 text-sm text-slate-300">
+                    {user?.resume
+                      ? "Uploaded"
+                      : "Not uploaded"}
+                  </p>
+                </div>
               </div>
+            </div>
+          </div>
 
-              {user?.skills && user.skills.length > 0 ? (
+          <div className="lg:col-span-2">
+            <form
+              onSubmit={handleUpdateProfile}
+              className="rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-xl sm:p-8"
+            >
+              <h2 className="text-2xl font-bold">
+                Personal Information
+              </h2>
 
-                <div className="flex flex-wrap gap-3">
+              <div className="mt-8 grid gap-6 sm:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-slate-300">
+                    Full Name
+                  </label>
 
-                  {user.skills.map((skill, index) => (
-                    <span
-                      key={`${skill}-${index}`}
-                      className="rounded-full border border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-2 text-sm font-semibold text-blue-700 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:scale-105 hover:shadow-md"
-                    >
-                      {skill}
-                    </span>
-                  ))}
+                  <div className="relative">
+                    <User
+                      size={18}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"
+                    />
 
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(event) =>
+                        setName(event.target.value)
+                      }
+                      className="w-full rounded-xl border border-slate-700 bg-slate-950 py-3 pl-11 pr-4 text-white outline-none transition focus:border-blue-500"
+                      placeholder="Enter your name"
+                      required
+                    />
+                  </div>
                 </div>
 
-              ) : (
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-slate-300">
+                    Email
+                  </label>
 
-                <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
-                  <p className="text-sm text-slate-500">
-                    No skills added yet.
+                  <div className="relative">
+                    <Mail
+                      size={18}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"
+                    />
+
+                    <input
+                      type="email"
+                      value={user?.email || ""}
+                      disabled
+                      className="w-full cursor-not-allowed rounded-xl border border-slate-800 bg-slate-950/60 py-3 pl-11 pr-4 text-slate-500"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-slate-300">
+                    Phone
+                  </label>
+
+                  <div className="relative">
+                    <Phone
+                      size={18}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500"
+                    />
+
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={(event) =>
+                        setPhone(event.target.value)
+                      }
+                      className="w-full rounded-xl border border-slate-700 bg-slate-950 py-3 pl-11 pr-4 text-white outline-none transition focus:border-blue-500"
+                      placeholder="Enter phone number"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-slate-300">
+                    Role
+                  </label>
+
+                  <input
+                    type="text"
+                    value={
+                      user?.role === "jobseeker"
+                        ? "Jobseeker"
+                        : "Recruiter"
+                    }
+                    disabled
+                    className="w-full cursor-not-allowed rounded-xl border border-slate-800 bg-slate-950/60 px-4 py-3 text-slate-500"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="mb-2 block text-sm font-medium text-slate-300">
+                    Skills
+                  </label>
+
+                  <input
+                    type="text"
+                    value={skills}
+                    onChange={(event) =>
+                      setSkills(event.target.value)
+                    }
+                    className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition focus:border-blue-500"
+                    placeholder="React, JavaScript, Node.js, MongoDB"
+                  />
+
+                  <p className="mt-2 text-xs text-slate-500">
+                    Separate multiple skills with commas.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={saving}
+                className="mt-8 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-3 font-semibold text-white transition hover:-translate-y-1 hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Save size={18} />
+
+                {saving
+                  ? "Saving..."
+                  : "Save Changes"}
+              </button>
+            </form>
+
+            <div className="mt-6 rounded-3xl border border-slate-800 bg-slate-900 p-6 shadow-xl sm:p-8">
+              <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h2 className="flex items-center gap-2 text-2xl font-bold">
+                    <FileText className="text-blue-400" />
+                    Resume
+                  </h2>
+
+                  <p className="mt-2 text-sm text-slate-400">
+                    Upload your latest resume in PDF format.
                   </p>
                 </div>
 
-              )}
-
-            </div>
-
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 p-6 shadow-2xl shadow-blue-200/30 sm:p-8">
-
-              <div className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-blue-500/20 blur-2xl" />
-
-              <div className="absolute -bottom-20 left-20 h-40 w-40 rounded-full bg-purple-500/20 blur-2xl" />
-
-              <div className="relative">
-
-                <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-
-                  <div>
-
-                    <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-blue-300 backdrop-blur">
-                      <FileText size={24} />
-                    </div>
-
-                    <h2 className="text-xl font-bold text-white">
-                      Resume
-                    </h2>
-
-                    <p className="mt-1 max-w-md text-sm leading-6 text-slate-300">
-                      Upload your latest resume so recruiters can
-                      review your professional profile.
-                    </p>
-
+                {user?.resume && (
+                  <div className="flex items-center gap-2 text-sm font-medium text-green-400">
+                    <CheckCircle2 size={17} />
+                    Resume Uploaded
                   </div>
+                )}
+              </div>
+
+              <div className="mt-6 rounded-2xl border border-dashed border-slate-700 bg-slate-950/50 p-6">
+                <div className="flex flex-col items-center justify-center text-center">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-400">
+                    <Upload size={28} />
+                  </div>
+
+                  <h3 className="mt-4 font-semibold">
+                    Upload Resume
+                  </h3>
+
+                  <p className="mt-2 text-sm text-slate-500">
+                    PDF only, maximum 5MB
+                  </p>
+
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="application/pdf"
+                    onChange={handleResumeUpload}
+                    className="hidden"
+                  />
 
                   <button
                     type="button"
@@ -495,61 +458,32 @@ const Profile = () => {
                       fileInputRef.current?.click()
                     }
                     disabled={uploading}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 font-semibold text-slate-900 shadow-lg transition-all duration-300 hover:-translate-y-1 hover:scale-105 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-60"
+                    className="mt-5 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    <Upload size={18} />
+                    <Upload size={17} />
 
                     {uploading
                       ? "Uploading..."
-                      : user?.resume
-                        ? "Replace Resume"
-                        : "Upload Resume"}
+                      : "Choose Resume"}
                   </button>
 
+                  {user?.resume && (
+                    <a
+                      href={getResumeUrl()}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-blue-400 transition hover:text-blue-300"
+                    >
+                      <Download size={16} />
+                      View / Download Resume
+                    </a>
+                  )}
                 </div>
-
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".pdf"
-                  onChange={handleResumeUpload}
-                  className="hidden"
-                />
-
-                {user?.resume && (
-
-                  <div className="mt-6 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur">
-
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-500/20 text-red-300">
-                      <FileText size={20} />
-                    </div>
-
-                    <div className="min-w-0">
-
-                      <p className="text-sm font-semibold text-white">
-                        Resume uploaded
-                      </p>
-
-                      <p className="truncate text-xs text-slate-400">
-                        {user.resume}
-                      </p>
-
-                    </div>
-
-                  </div>
-
-                )}
-
               </div>
-
             </div>
-
           </div>
-
         </div>
-
       </div>
-
     </div>
   );
 };

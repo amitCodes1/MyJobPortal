@@ -1,7 +1,14 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useAppSelector } from "../store/hooks";
+import type { UserRole } from "../types";
 
-const ProtectedRoute = () => {
+interface ProtectedRouteProps {
+  allowedRoles?: UserRole[];
+}
+
+const ProtectedRoute = ({
+  allowedRoles
+}: ProtectedRouteProps) => {
   const { user, loading } = useAppSelector(
     (state) => state.auth
   );
@@ -16,6 +23,13 @@ const ProtectedRoute = () => {
 
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (
+    allowedRoles &&
+    !allowedRoles.includes(user.role)
+  ) {
+    return <Navigate to="/" replace />;
   }
 
   return <Outlet />;
